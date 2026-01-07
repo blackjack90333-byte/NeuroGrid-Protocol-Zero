@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>AAR Protocol</title>
+    <style>
+        body {
+            background-color: #11121a;
+            color: #fff;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', sans-serif;
+            height: 100vh;
+            overflow: hidden;
+            box-sizing: border-box;
+        }
+
+        /* --- КНОПКА-ТРИГГЕР (Видна всегда) --- */
+        .trigger-btn {
+            width: 100%;
+            height: 100%;
+            background: #1a1c2e;
+            border: 2px dashed #ef4444; /* Красный пунктир - внимание */
+            border-radius: 12px;
+            color: #ef4444;
+            font-weight: bold;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            text-align: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .trigger-btn:hover {
+            background: #ef4444;
+            color: #000;
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.4);
+        }
+
+        /* --- МОДАЛЬНОЕ ОКНО (POPUP) --- */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: rgba(5, 5, 5, 0.95);
+            backdrop-filter: blur(5px);
+            z-index: 9999;
+            display: none; /* Скрыто по умолчанию */
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            overflow-y: auto; /* Скролл внутри модалки */
+            padding: 40px 20px;
+            box-sizing: border-box;
+        }
+
+        .modal-content {
+            max-width: 600px;
+            margin: 0 auto;
+            background: #11121a;
+            border: 1px solid #333;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 0 50px rgba(0,0,0,0.8);
+            position: relative;
+        }
+
+        /* Заголовок модалки */
+        h2 {
+            margin-top: 0;
+            color: #ef4444;
+            text-transform: uppercase;
+            border-bottom: 2px solid #ef4444;
+            padding-bottom: 15px;
+            font-size: 20px;
+        }
+
+        /* Группы вопросов */
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            color: #a1a1aa;
+            font-size: 14px;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+
+        /* Поля ввода */
+        textarea, input[type="text"], input[type="date"] {
+            width: 100%;
+            background: #1a1c2e;
+            border: 1px solid #4b5563;
+            color: #fff;
+            padding: 12px;
+            border-radius: 8px;
+            font-family: 'Segoe UI', sans-serif;
+            font-size: 14px;
+            box-sizing: border-box;
+            resize: vertical; /* Можно тянуть вниз */
+            min-height: 80px;
+        }
+
+        textarea:focus, input:focus {
+            outline: none;
+            border-color: #ef4444;
+            box-shadow: 0 0 10px rgba(239, 68, 68, 0.2);
+        }
+
+        /* Кнопки действий */
+        .action-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 30px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+            font-size: 14px;
+            transition: transform 0.1s;
+        }
+
+        .btn:active { transform: scale(0.98); }
+
+        .btn-telegram {
+            background: #24A1DE; /* Цвет Телеграм */
+            color: white;
+        }
+        .btn-telegram:hover { background: #1b8bbf; }
+
+        .btn-close {
+            background: #333;
+            color: #aaa;
+        }
+        .btn-close:hover { background: #444; color: #fff; }
+
+        /* Класс для показа */
+        .visible {
+            display: block !important;
+            opacity: 1 !important;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="trigger-btn" onclick="openModal()">
+        ⚠ СДЕЛАТЬ ОТЧЕТ<br>РАБОТА НАД ОШИБКАМИ
+    </div>
+
+    <div class="modal-overlay" id="modal">
+        <div class="modal-content">
+            <h2>Протокол Разбора (AAR)</h2>
+
+            <div class="form-group">
+                <label>ТЕМА / НАЗВАНИЕ ПРОВАЛА:</label>
+                <input type="text" id="q0" placeholder="Например: Срыв диеты или Пропуск дедлайна" style="min-height: auto;">
+            </div>
+
+            <div class="form-group">
+                <label>1. Что именно произошло (выбери недавний провал)?</label>
+                <textarea id="q1" placeholder="Факты, без эмоций..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>2. Что в этой ситуации прошло хорошо (будь щедр к себе)?</label>
+                <textarea id="q2" placeholder="Даже в провале есть плюсы..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>3. Как ты справился с неудачей (реакция, самооценка)?</label>
+                <textarea id="q3" placeholder="Я расстроился, но..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>4. О чем ты думал во время подготовки и в момент провала?</label>
+                <textarea id="q4" placeholder="Мысли, страхи, сомнения..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>5. Список исправлений (тактика, снаряжение, мышление):</label>
+                <textarea id="q5" placeholder="В следующий раз я..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>6. Дата новой попытки (реванша):</label>
+                <input type="text" id="q6" placeholder="DD.MM.YYYY или Завтра">
+            </div>
+
+            <div class="action-row">
+                <button class="btn btn-close" onclick="closeModal()">ЗАКРЫТЬ</button>
+                <button class="btn btn-telegram" id="copyBtn" onclick="copyToClipboard()">
+                    СФОРМИРОВАТЬ ДЛЯ TG
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        const modal = document.getElementById('modal');
+
+        // Открыть
+        function openModal() {
+            modal.style.display = 'block';
+            // Небольшой тайм-аут для анимации opacity
+            setTimeout(() => {
+                modal.style.opacity = '1';
+            }, 10);
+            // Блокируем скролл основной страницы (через parent, так как мы в iframe)
+            if(window.parent && window.parent.document) {
+                window.parent.document.body.style.overflow = 'hidden';
+            }
+        }
+
+        // Закрыть
+        function closeModal() {
+            modal.style.opacity = '0';
+            setTimeout(() => {
+                modal.style.display = 'none';
+            }, 300);
+            if(window.parent && window.parent.document) {
+                window.parent.document.body.style.overflow = '';
+            }
+        }
+
+        // КОПИРОВАНИЕ В ТЕЛЕГРАМ
+        function copyToClipboard() {
+            // Собираем данные
+            const topic = document.getElementById('q0').value || "Без темы";
+            const a1 = document.getElementById('q1').value || "-";
+            const a2 = document.getElementById('q2').value || "-";
+            const a3 = document.getElementById('q3').value || "-";
+            const a4 = document.getElementById('q4').value || "-";
+            const a5 = document.getElementById('q5').value || "-";
+            const a6 = document.getElementById('q6').value || "-";
+
+            // Формируем Markdown строку
+            const reportText = 
+`**РАБОТА НАД ОШИБКАМИ ПО ТЕМЕ:** ${topic}
+
+**1. Что именно произошло?**
+${a1}
+
+**2. Что прошло хорошо?**
+${a2}
+
+**3. Как справился с неудачей?**
+${a3}
+
+**4. О чем думал в момент провала?**
+${a4}
+
+**5. Список исправлений:**
+${a5}
+
+**6. Дата новой попытки:**
+${a6}`;
+
+            // Копируем в буфер
+            navigator.clipboard.writeText(reportText).then(() => {
+                // Визуальное подтверждение
+                const btn = document.getElementById('copyBtn');
+                const originalText = btn.innerText;
+                
+                btn.innerText = "СКОПИРОВАНО! ✅";
+                btn.style.background = "#10b981"; // Зеленый
+                
+                setTimeout(() => {
+                    btn.innerText = originalText;
+                    btn.style.background = "#24A1DE";
+                    closeModal(); // Автоматически закрываем после копирования (опционально)
+                }, 1500);
+            }).catch(err => {
+                console.error('Ошибка копирования:', err);
+                alert('Не удалось скопировать текст.');
+            });
+        }
+    </script>
+</body>
+</html>

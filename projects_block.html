@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Project Links</title>
+    <style>
+        body {
+            background-color: #11121a;
+            color: #fff;
+            margin: 0;
+            padding: 15px;
+            font-family: 'Segoe UI', sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+
+        .header {
+            font-size: 11px;
+            color: #a1a1aa;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #333;
+        }
+
+        /* Контейнер для списка (скролл если много проектов) */
+        .projects-list {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding-right: 5px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .projects-list::-webkit-scrollbar { width: 4px; }
+        .projects-list::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+
+        /* СТРОКА ПРОЕКТА */
+        .project-row {
+            display: flex;
+            gap: 8px; /* Расстояние между кнопкой сайта и шестеренкой */
+        }
+
+        /* ОСНОВНАЯ КНОПКА (САЙТ) */
+        .btn-main {
+            flex-grow: 1; /* Занимает всё место */
+            background: #1e293b;
+            color: #e2e8f0;
+            text-decoration: none;
+            padding: 12px 15px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            border: 1px solid transparent;
+        }
+
+        .btn-main:hover {
+            background: #2e1065; /* Темно-фиолетовый при наведении */
+            border-color: #d946ef;
+            color: #fff;
+            transform: translateX(2px); /* Легкий сдвиг вправо */
+        }
+
+        /* Иконка перед текстом (опционально, для красоты) */
+        .btn-main::before {
+            content: "➜";
+            margin-right: 8px;
+            color: #d946ef;
+            font-size: 10px;
+        }
+
+        /* КНОПКА РЕДАКТИРОВАНИЯ (ШЕСТЕРЕНКА) */
+        .btn-edit {
+            width: 42px; /* Квадратная */
+            flex-shrink: 0; /* Не сжимается */
+            background: #1a1c2e;
+            border: 1px solid #333;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .btn-edit svg {
+            width: 18px;
+            height: 18px;
+            fill: #64748b; /* Серый цвет иконки */
+            transition: fill 0.2s;
+        }
+
+        .btn-edit:hover {
+            border-color: #fcd34d; /* Золотая обводка */
+            background: rgba(252, 211, 77, 0.1);
+        }
+
+        .btn-edit:hover svg {
+            fill: #fcd34d; /* Золотая иконка */
+            animation: spin 2s linear infinite;
+        }
+
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+    </style>
+</head>
+<body>
+
+    <div class="header">DEPLOYED PROJECTS</div>
+    
+    <div class="projects-list" id="root">
+        </div>
+
+    <script>
+        // ==========================================
+        // 1. АРХИТЕКТУРА: JSON ОБЪЕКТ ПРОЕКТОВ
+        // ==========================================
+        const projectsData = [
+            {
+                name: "Мои ачивки",
+                url: "https://my-achievements-five.vercel.app/",
+                editUrl: "https://github.com/blackjack90333-byte/my-achievements/blob/main/index.html"
+            },
+            {
+                name: "Мои квесты",
+                url: "https://life-quests-tau.vercel.app/",
+                editUrl: "https://github.com/blackjack90333-byte/life_quests/blob/main/quests.js"
+            },
+            {
+                name: "Google (Пример без правки)",
+                url: "https://google.com",
+                // editUrl не указан — шестеренки не будет
+            },
+            {
+                name: "Ascension HUD (Repo)",
+                url: "https://github.com/blackjack90333-byte", // Ссылка на профиль
+                editUrl: "https://github.com" // Ссылка на редактирование
+            }
+        ];
+
+        // ==========================================
+        // 2. РЕНДЕР
+        // ==========================================
+        const root = document.getElementById('root');
+
+        // SVG иконка шестеренки
+        const gearIcon = `
+            <svg viewBox="0 0 24 24">
+                <path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/>
+            </svg>
+        `;
+
+        function renderProjects() {
+            root.innerHTML = '';
+
+            projectsData.forEach(proj => {
+                // Создаем строку (обертку)
+                const row = document.createElement('div');
+                row.className = 'project-row';
+
+                // 1. Кнопка проекта
+                const mainBtn = document.createElement('a');
+                mainBtn.className = 'btn-main';
+                mainBtn.href = proj.url;
+                mainBtn.target = '_blank'; // Открывать в новой вкладке
+                mainBtn.innerText = proj.name;
+                row.appendChild(mainBtn);
+
+                // 2. Кнопка правки (Шестеренка) - только если есть ссылка
+                if (proj.editUrl) {
+                    const editBtn = document.createElement('a');
+                    editBtn.className = 'btn-edit';
+                    editBtn.href = proj.editUrl;
+                    editBtn.target = '_blank';
+                    editBtn.innerHTML = gearIcon; // Вставляем SVG
+                    editBtn.title = "Редактировать код"; // Подсказка
+                    row.appendChild(editBtn);
+                }
+
+                root.appendChild(row);
+            });
+        }
+
+        renderProjects();
+    </script>
+</body>
+</html>

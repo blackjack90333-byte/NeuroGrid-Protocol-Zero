@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Memento Mori</title>
+    <style>
+        body {
+            background-color: #11121a;
+            color: #fff;
+            margin: 0;
+            padding: 15px;
+            font-family: 'Segoe UI', sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-bottom: 10px;
+        }
+
+        .title {
+            font-size: 10px;
+            color: #ef4444; /* Красный тревожный */
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: bold;
+        }
+
+        .stats {
+            font-family: 'Courier New', monospace;
+            font-size: 10px;
+            color: #666;
+        }
+
+        /* КОНТЕЙНЕР СЕТКИ */
+        .weeks-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2px; /* Расстояние между точками */
+            align-content: flex-start;
+            height: 100%;
+            overflow-y: auto; /* Скролл, если жизнь длинная */
+        }
+
+        /* Скрываем скроллбар */
+        .weeks-grid::-webkit-scrollbar { width: 0; }
+
+        .week {
+            width: 4px;
+            height: 4px;
+            background-color: #1f2937; /* Темно-серый (будущее) */
+            border-radius: 1px;
+        }
+
+        /* ПРОЖИТОЕ (DEAD DATA) */
+        .week.dead {
+            background-color: #ef4444; /* Красный */
+            opacity: 0.3; /* Тусклый, как старая память */
+        }
+
+        /* ТЕКУЩАЯ НЕДЕЛЯ (ACTIVE) */
+        .week.active {
+            background-color: #fff;
+            box-shadow: 0 0 10px #fff;
+            animation: blink 1s infinite;
+        }
+
+        /* БУДУЩЕЕ (AVAILABLE) */
+        .week.future {
+            background-color: #334155; /* Чуть светлее фона */
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.2; }
+        }
+
+        .overlay-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 40px;
+            font-weight: 900;
+            color: rgba(255,255,255,0.05);
+            pointer-events: none;
+            text-transform: uppercase;
+            white-space: nowrap;
+            z-index: 0;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <span class="title">КАРТА ПОВРЕЖДЕНИЯ ПАМЯТИ</span>
+        <span class="stats" id="stats-text">ЗАГРУЗКА СЕКТОРОВ...</span>
+    </div>
+
+    <div class="weeks-grid" id="grid"></div>
+    
+    <div class="overlay-text">НЕ ТЕРЯЙ ВРЕМЯ</div>
+
+    <script>
+        // ----------------------------------------------------
+        // ЛОГИКА
+        // ----------------------------------------------------
+        const WEEKS_IN_YEAR = 52;
+
+        function parseCustomDate(dateStr) {
+            if (!dateStr) return null;
+            const [datePart, timePart] = dateStr.split(' ');
+            if (!datePart) return null; // время может не быть
+            const [day, month, year] = datePart.split('.');
+            // Месяцы в JS с 0
+            return new Date(year, month - 1, day);
+        }
+
+        function renderGrid() {
+            // 1. Читаем настройки
+            const rawData = localStorage.getItem('hud_settings');
+            
+            let birthDate = new Date(2001, 0, 27); // Дефолт
+            let lifeSpanYears = 80; // Дефолт (если в таблице пусто)
+
+            if (rawData) {
+                try {
+                    const settings = JSON.parse(rawData);
+                    
+                    // Парсим дату рождения
+                    if (settings.birthdate) {
+                        const parsed = parseCustomDate(settings.birthdate);
+                        if (parsed) birthDate = parsed;
+                    }
+
+                    // Парсим срок жизни (death_date)
+                    if (settings.death_date) {
+                        lifeSpanYears = parseInt(settings.death_date);
+                    }
+
+                } catch (e) { console.error(e); }
+            }
+
+            // 2. Рассчитываем общее количество недель
+            const totalWeeks = lifeSpanYears * WEEKS_IN_YEAR;
+
+            const now = new Date();
+            const msInWeek = 1000 * 60 * 60 * 24 * 7;
+            
+            // Сколько недель уже прожито
+            const weeksLived = Math.floor((now - birthDate) / msInWeek);
+            const weeksLeft = totalWeeks - weeksLived;
+
+            // 3. Обновляем текст в шапке (ПЕРЕВЕДЕНО)
+            document.getElementById('stats-text').innerText = 
+                `УШЛО: ${weeksLived} | ОСТАЛОСЬ: ${weeksLeft} (ЦЕЛЬ: ${lifeSpanYears} ЛЕТ)`;
+
+            // 4. Генерируем сетку
+            const grid = document.getElementById('grid');
+            grid.innerHTML = '';
+
+            const fragment = document.createDocumentFragment();
+
+            for (let i = 0; i < totalWeeks; i++) {
+                const dot = document.createElement('div');
+                dot.className = 'week';
+
+                if (i < weeksLived) {
+                    dot.classList.add('dead'); // Прожито (Красный)
+                } else if (i === weeksLived) {
+                    dot.classList.add('active'); // Сейчас (Мигает белый)
+                } else {
+                    dot.classList.add('future'); // Осталось (Серый)
+                }
+
+                // Подсказка при наведении (Возраст в этой точке) (ПЕРЕВЕДЕНО)
+                const ageAtThatPoint = Math.floor(i / 52);
+                dot.title = `Возраст: ${ageAtThatPoint}`;
+
+                fragment.appendChild(dot);
+            }
+
+            grid.appendChild(fragment);
+        }
+
+        // Рендерим при загрузке
+        renderGrid();
+
+        // Слушатель обновлений
+        window.addEventListener('storage', function(e) {  
+            if (e.key === 'hud_settings') renderGrid();
+        });
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>System Status</title>
+    <style>
+        body {
+            background-color: #11121a;
+            color: #fff;
+            margin: 0;
+            padding: 20px;
+            font-family: 'Segoe UI', sans-serif;
+            height: 100vh;
+            box-sizing: border-box;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* КОНТЕЙНЕР "СИСТЕМЫ" */
+        .system-window {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            position: relative;
+        }
+
+        /* ВЕРХНЯЯ ЧАСТЬ: ИМЯ И ПРОФЕССИЯ */
+        .header-section {
+            display: grid;
+            grid-template-columns: 80px 1fr;
+            gap: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #333;
+        }
+
+        .avatar-placeholder {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #2e1065, #d946ef);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            box-shadow: 0 0 15px rgba(217, 70, 239, 0.2);
+            border: 1px solid #d946ef;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 5px 15px;
+            align-items: center;
+        }
+
+        .label {
+            color: #94a3b8;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .value {
+            font-weight: 600;
+            font-size: 13px;
+            text-shadow: 0 0 5px rgba(255,255,255,0.3);
+        }
+
+        /* ВЫДЕЛЕНИЕ (ЗВАНИЕ) */
+        .title-badge {
+            color: #fcd34d; /* Золотой */
+            text-shadow: 0 0 10px rgba(252, 211, 77, 0.4);
+        }
+
+        /* УРОВЕНЬ И XP */
+        .level-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-bottom: 5px;
+        }
+
+        .level-num {
+            font-size: 24px;
+            font-weight: 900;
+            color: #fff;
+        }
+
+        .level-label {
+            font-size: 10px;
+            color: #94a3b8;
+            margin-right: 5px;
+        }
+
+        .xp-bar-track {
+            width: 100%;
+            height: 6px;
+            background: #1e293b;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+
+        .xp-bar-fill {
+            height: 100%;
+            width: 65%; /* Фейковое значение */
+            background: linear-gradient(90deg, #d946ef, #8b5cf6);
+            box-shadow: 0 0 10px #d946ef;
+        }
+
+        /* ХАРАКТЕРИСТИКИ (STATS) */
+        .stats-container {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+
+        .stats-container::-webkit-scrollbar { width: 0; }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 10px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 6px;
+            border-left: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .stat-row:hover {
+            background: rgba(217, 70, 239, 0.1);
+            border-left-color: #d946ef;
+        }
+
+        .stat-name {
+            font-weight: bold;
+            font-size: 14px;
+            color: #cbd5e1;
+        }
+
+        .stat-val {
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            font-size: 16px;
+            color: #fff;
+        }
+
+        /* БАРЫ HP/MP */
+        .resource-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+        .res-label { width: 30px; font-size: 10px; font-weight: bold; }
+        .res-track { flex-grow: 1; height: 4px; background: #333; border-radius: 2px; overflow: hidden; }
+        .res-fill { height: 100%; border-radius: 2px; }
+        
+        .hp .res-fill { width: 80%; background: #ef4444; box-shadow: 0 0 5px #ef4444; }
+        .mp .res-fill { width: 45%; background: #3b82f6; box-shadow: 0 0 5px #3b82f6; }
+
+        /* Разделитель */
+        .divider { height: 1px; background: #333; margin: 5px 0 10px 0; }
+
+    </style>
+</head>
+<body>
+
+    <div class="system-window">
+        
+        <div class="header-section">
+            <div class="avatar-placeholder">S</div>
+            <div class="info-grid">
+                <div class="label">NAME</div>
+                <div class="value">JIN-WOO</div> <div class="label">JOB</div>
+                <div class="value">DIGITAL MARKETER</div>
+                
+                <div class="label">TITLE</div>
+                <div class="value title-badge">NOVACE HUNTER</div>
+            </div>
+        </div>
+
+        <div>
+            <div class="level-row">
+                <div><span class="level-label">LEVEL</span><span class="level-num">05</span></div>
+                <div style="font-size: 10px; color: #666;">XP: 1450 / 2000</div>
+            </div>
+            <div class="xp-bar-track">
+                <div class="xp-bar-fill"></div>
+            </div>
+        </div>
+
+        <div>
+            <div class="resource-row hp">
+                <span class="res-label" style="color:#ef4444">HP</span>
+                <div class="res-track"><div class="res-fill"></div></div>
+                <span style="font-size:10px; margin-left:5px;">80%</span>
+            </div>
+            <div class="resource-row mp">
+                <span class="res-label" style="color:#3b82f6">MP</span>
+                <div class="res-track"><div class="res-fill"></div></div>
+                <span style="font-size:10px; margin-left:5px;">45%</span>
+            </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="stats-container">
+            <div class="stat-row">
+                <span class="stat-name">STR (Сила)</span>
+                <span class="stat-val">12</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-name">VIT (Живучесть)</span>
+                <span class="stat-val">18</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-name">AGI (Ловкость)</span>
+                <span class="stat-val">14</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-name">INT (Интеллект)</span>
+                <span class="stat-val">25</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-name">SEN (Восприятие)</span>
+                <span class="stat-val">10</span>
+            </div>
+        </div>
+
+        <div style="text-align: center; margin-top: 5px;">
+            <span style="font-size: 10px; color: #666;">AVAILABLE POINTS: </span>
+            <span style="font-size: 12px; color: #39ff14; font-weight: bold;">0</span>
+        </div>
+
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <link rel="icon" type="image/png" href="/favicon/favicon-96x96.png" sizes="96x96" />
+<link rel="icon" type="image/svg+xml" href="/favicon/favicon.svg" />
+<link rel="shortcut icon" href="/favicon/favicon.ico" />
+<link rel="apple-touch-icon" sizes="180x180" href="/favicon/apple-touch-icon.png" />
+<meta name="apple-mobile-web-app-title" content="NeuroGrid" />
+<link rel="manifest" href="/favicon/site.webmanifest" />
+    <meta charset="UTF-8">
+    <title>NeuroGrid Protocol Zero</title>
+    <style>
+        body {
+            background-color: #050505;
+            margin: 0;
+            height: 100vh;
+            overflow: hidden; /* ЗАПРЕЩАЕМ скролл глобально */
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        /* КОНТЕЙНЕР СЕТКИ */
+        .dashboard-grid {
+            display: grid;
+            /* 4 колонки по ширине */
+            grid-template-columns: repeat(4, 1fr);
+            
+            /* --- ГЛАВНОЕ ИЗМЕНЕНИЕ --- */
+            /* Делим высоту экрана ровно на 6 частей */
+            grid-template-rows: repeat(6, 1fr);
+            
+            gap: 5px;
+            padding: 5px;
+            
+            height: 100vh;
+            box-sizing: border-box;
+            
+            /* Плавное размытие для модалки */
+            transition: filter 0.3s ease;
+        }
+
+        /* ВИДЖЕТ (IFRAME) */
+        .widget-frame {
+            width: 100%;
+            height: 100%;
+            border: none;
+            border-radius: 5px;
+            background-color: #11121a;
+            box-shadow: 0 0 15px rgba(138, 43, 226, 0.05);
+            animation: fadeIn 0.5s ease-out;
+            /* Чтобы контент внутри фреймов тоже не скроллился, если не влезает,
+               но лучше внутри самих блоков настраивать адаптив */
+            overflow: hidden; 
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* --- МОДАЛКА (SETTINGS) --- */
+        #settings-frame {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 400px; height: 300px;
+            border: none; border-radius: 16px;
+            box-shadow: 0 0 50px rgba(217, 70, 239, 0.5), 0 0 0 2px #d946ef;
+            z-index: 9999;
+            display: none; opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="dashboard-grid" id="grid-root"></div>
+
+    <iframe src="settings.html" id="settings-frame"></iframe>
+
+    <script>
+        // ==========================================
+        // 1. АРХИТЕКТУРА: БАЛАНС СЕТКИ (Total Height = 6)
+        // ==========================================
+        
+        // const widgetsConfig = [
+        //     // ЭТОТ БЛОК ПРОСТО ТЕОРЕТИЧЕСКИ ПРО ПРОКАЧКУ, РЕФЕРЕНС SOLO LEVELING
+        //     { src: "quests_block.html", colSpan: 2, rowSpan: 6 }, 
+        //     { src: "status_block.html", colSpan: 2, rowSpan: 6 },
+            
+        // ];
+
+
+        // const widgetsConfig = [
+        //     // --- ЛЕВАЯ КОЛОНКА (Сумма rowSpan = 6) ---
+        //     // Самый важный блок, занимает половину высоты левой части
+        //     // { src: "quests_block.html", colSpan: 2, rowSpan: 3 }, 
+        //     // { src: "status_block.html", colSpan: 2, rowSpan: 6 },
+        //     // Средний блок
+        //     { src: "aar_block.html", colSpan: 1, rowSpan: 4 },
+        //     { src: "memento_block.html", colSpan: 1, rowSpan: 4 },
+
+        //     { src: "birthdate_block.html", colSpan: 1, rowSpan: 2 },
+        //     { src: "biodecay_block.html", colSpan: 1, rowSpan: 2 },
+        //     { src: "counters_block.html", colSpan: 2, rowSpan: 2 }, 
+        //     // Маленький блок (пришлось уменьшить Memento до 1, чтобы влезло)
+        //     // --- ПРАВАЯ КОЛОНКА (Сумма rowSpan = 6) ---
+        //     // Трекер голодания
+        //     { src: "fasting_tracker_block.html", colSpan: 2, rowSpan: 2 },
+        //     { src: "calories_block.html", colSpan: 2, rowSpan: 2 },
+        //     // Биораспад
+        //     // День рождения (увеличил до 2, чтобы заполнить пустоту внизу)
+        // ];
+        const widgetsConfig = [
+            // --- ЛЕВАЯ КОЛОНКА (Сумма rowSpan = 6) ---
+            // Самый важный блок, занимает половину высоты левой части
+            // { src: "quests_block.html", colSpan: 2, rowSpan: 3 }, 
+            // { src: "status_block.html", colSpan: 2, rowSpan: 6 },
+            // Средний блок
+            { src: "fasting_tracker_block.html", colSpan: 2, rowSpan: 2 },
+            { src: "memento_block.html", colSpan: 1, rowSpan: 2 },
+            { src: "birthdate_block.html", colSpan: 1, rowSpan: 2 },
+            { src: "calories_block.html", colSpan: 1, rowSpan: 4 },
+            { src: "aar_block.html", colSpan: 1, rowSpan: 4 },
+            { src: "counters_block.html", colSpan: 1, rowSpan: 4 }, 
+            { src: "biodecay_block.html", colSpan: 1, rowSpan: 2 },
+
+            { src: "projects_block.html", colSpan: 1, rowSpan: 2 }, 
+            // Маленький блок (пришлось уменьшить Memento до 1, чтобы влезло)
+            // --- ПРАВАЯ КОЛОНКА (Сумма rowSpan = 6) ---
+            // Трекер голодания
+            // Биораспад
+            // День рождения (увеличил до 2, чтобы заполнить пустоту внизу)
+        ];
+
+
+        // ==========================================
+        // 2. ДВИЖОК
+        // ==========================================
+        const gridRoot = document.getElementById('grid-root');
+
+        function renderGrid() {
+            gridRoot.innerHTML = ''; 
+
+            widgetsConfig.forEach((widget, index) => {
+                const iframe = document.createElement('iframe');
+                iframe.src = widget.src;
+                iframe.className = 'widget-frame';
+                
+                iframe.style.gridColumn = `span ${widget.colSpan}`;
+                iframe.style.gridRow = `span ${widget.rowSpan}`;
+                
+                iframe.style.animationDelay = `${index * 0.05}s`;
+
+                gridRoot.appendChild(iframe);
+            });
+        }
+
+        renderGrid();
+
+
+        // ==========================================
+        // 3. ЛОГИКА F8
+        // ==========================================
+        const settingsFrame = document.getElementById('settings-frame');
+
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'F8') {
+                event.preventDefault();
+                toggleSettings();
+            }
+        });
+
+        function toggleSettings() {
+            const isHidden = getComputedStyle(settingsFrame).display === 'none';
+            
+            if (isHidden) {
+                settingsFrame.style.display = 'block';
+                setTimeout(() => settingsFrame.style.opacity = '1', 10);
+                gridRoot.style.filter = 'blur(10px) brightness(0.5)';
+            } else {
+                settingsFrame.style.opacity = '0';
+                gridRoot.style.filter = 'none';
+                setTimeout(() => settingsFrame.style.display = 'none', 300);
+            }
+        }
+    </script>
+</body>
+</html>

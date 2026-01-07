@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            background-color: #1a1b26; /* Темный фон окна */
+            color: #fff;
+            margin: 0;
+            padding: 20px;
+            font-family: 'Segoe UI', monospace;
+            box-sizing: border-box;
+            height: 100vh; /* На всю высоту iframe */
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        h3 {
+            color: #d946ef;
+            margin-top: 0;
+            text-transform: uppercase;
+            font-size: 16px;
+            border-bottom: 2px solid #d946ef;
+            padding-bottom: 10px;
+            text-align: center;
+            letter-spacing: 2px;
+        }
+
+        .control-group {
+            margin-bottom: 15px;
+            margin-top: 20px;
+        }
+
+        label {
+            display: block;
+            font-size: 12px;
+            color: #a1a1aa;
+            margin-bottom: 5px;
+        }
+
+        input {
+            width: 100%;
+            background: #0f1016;
+            border: 1px solid #4b5563;
+            color: #fff;
+            padding: 10px;
+            border-radius: 6px;
+            font-family: monospace;
+            box-sizing: border-box;
+            text-align: center;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #d946ef;
+            box-shadow: 0 0 10px rgba(217, 70, 239, 0.2);
+        }
+
+        .btn-sync {
+            width: 100%;
+            background: #10b981;
+            border: none;
+            padding: 12px;
+            color: white;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-top: auto; /* Прижимает кнопку к низу, если есть место */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.2s;
+        }
+
+        .btn-sync:hover { 
+            background: #059669; 
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
+        }
+
+        .status-msg {
+            font-size: 11px;
+            text-align: center;
+            margin-top: 10px;
+            height: 15px;
+            font-family: monospace;
+        }
+
+        /* Кнопка закрытия (крестик) */
+        .close-hint {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 10px;
+            color: #555;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    
+    <div class="close-hint">[F8 to Close]</div>
+    <h3>System Config</h3>
+
+    <div class="control-group">
+        <label>Google Script URL (API) /exec</label>
+        <input type="text" id="apiUrl" placeholder="https://script.google.com/macros/s/...">
+    </div>
+    
+    <button class="btn-sync" onclick="syncFromCloud()">
+        <span>↻</span> SYNC CLOUD DATA
+    </button>
+    
+    <div class="status-msg" id="sync-msg" style="color: #666;">READY</div>
+
+    <script>
+        // Загрузка
+        function loadConfig() {
+            const savedUrl = localStorage.getItem('hud_api_url');
+            if (savedUrl) document.getElementById('apiUrl').value = savedUrl;
+        }
+
+        // Синхронизация
+        async function syncFromCloud() {
+            const url = document.getElementById('apiUrl').value;
+            const msg = document.getElementById('sync-msg');
+
+            if (!url) {
+                msg.innerText = "ERROR: NO URL";
+                msg.style.color = "#ef4444";
+                return;
+            }
+
+            localStorage.setItem('hud_api_url', url);
+            msg.innerText = "CONNECTING...";
+            msg.style.color = "yellow";
+
+            try {
+                const response = await fetch(url);
+                const data = await response.json(); 
+                
+                // Сохраняем JSON
+                localStorage.setItem('hud_settings', JSON.stringify(data));
+
+                msg.innerText = "SYNC COMPLETE: " + Object.keys(data).length + " KEYS";
+                msg.style.color = "#10b981";
+
+            } catch (error) {
+                console.error(error);
+                msg.innerText = "CONNECTION FAILED";
+                msg.style.color = "#ef4444";
+            }
+        }
+
+        // Если нажали F8 внутри этого окна — передаем событие наверх (в index.html)
+        // Чтобы окно закрылось, даже если фокус внутри него
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'F8') {
+                // Вызываем функцию закрытия в родительском окне
+                window.parent.document.dispatchEvent(new KeyboardEvent('keydown', {'key': 'F8'}));
+            }
+        });
+
+        loadConfig();
+    </script>
+</body>
+</html>

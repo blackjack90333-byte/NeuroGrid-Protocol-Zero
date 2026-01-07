@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Телеметрия Жизни</title>
+    <style>
+        body {
+            background-color: #11121a;
+            color: #fff;
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 15px;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', sans-serif;
+            overflow: hidden;
+        }
+
+        /* КОНТЕЙНЕР: Сетка 2 колонки */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1px 1fr; /* Лево | Линия | Право */
+            align-items: center;
+            gap: 15px;
+            height: 100%;
+        }
+
+        /* Разделительная линия */
+        .divider {
+            width: 1px;
+            height: 80%;
+            background: linear-gradient(to bottom, transparent, #333, transparent);
+        }
+
+        /* --- БЛОКИ --- */
+        .stat-block {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+        }
+
+        /* ЛЕВАЯ СТОРОНА (ПРОШЛОЕ) */
+        .stat-block.past {
+            text-align: right; 
+            color: #94a3b8; 
+        }
+
+        /* ПРАВАЯ СТОРОНА (БУДУЩЕЕ) */
+        .stat-block.future {
+            text-align: left; 
+            color: #d946ef; 
+        }
+
+        /* ЗАГОЛОВКИ */
+        .label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            opacity: 0.6;
+            margin-bottom: 5px;
+            font-weight: 700;
+        }
+
+        /* ГЛАВНЫЕ ЦИФРЫ (ДНИ) */
+        .big-number {
+            font-family: 'Courier New', monospace;
+            font-size: 42px; 
+            font-weight: bold;
+            line-height: 0.9;
+            text-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+
+        .unit {
+            font-size: 12px;
+            opacity: 0.5;
+            font-weight: normal;
+        }
+
+        /* ВТОРОСТЕПЕННЫЕ ЦИФРЫ (ЧАСЫ:МИНУТЫ) */
+        .sub-number {
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            margin-top: 5px;
+            opacity: 0.8;
+            letter-spacing: 1px;
+        }
+
+        /* АНИМАЦИЯ ПУЛЬСА ДЛЯ БУДУЩЕГО */
+        .future .big-number {
+            text-shadow: 0 0 15px rgba(217, 70, 239, 0.4);
+            animation: pulse 2s infinite;
+        }
+
+        .future .sub-number {
+            color: #f0abfc;
+        }
+
+        @keyframes pulse {
+            0% { text-shadow: 0 0 10px rgba(217, 70, 239, 0.2); }
+            50% { text-shadow: 0 0 20px rgba(217, 70, 239, 0.6); }
+            100% { text-shadow: 0 0 10px rgba(217, 70, 239, 0.2); }
+        }
+
+        /* НИЖНИЙ КОЛОНТИТУЛ */
+        .footer-info {
+            position: absolute;
+            bottom: 10px;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            font-size: 10px;
+            color: #444;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Спецэффект при наведении */
+        .stat-block.future:hover .label::after {
+            content: " [КРИТИЧЕСКАЯ ОШИБКА]";
+            color: #ef4444;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="stats-grid">
+        
+        <div class="stat-block past">
+            <div class="label">ПРОЖИТО</div>
+            <div class="big-number" id="lived-days">0000<span class="unit">д</span></div>
+            <div class="sub-number" id="lived-detail">00ч 00м</div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="stat-block future">
+            <div class="label">ОСТАЛОСЬ</div>
+            <div class="big-number" id="left-days">000<span class="unit">д</span></div>
+            <div class="sub-number" id="left-detail">00ч 00м 00с</div>
+        </div>
+
+    </div>
+
+    <div class="footer-info" id="footer-target">РАСЧЕТ ДЕДЛАЙНА...</div>
+
+    <script>
+        function parseCustomDate(dateStr) {
+            if (!dateStr) return null;
+            // Ожидаем формат "DD.MM.YYYY HH:mm:ss"
+            const [datePart, timePart] = dateStr.split(' ');
+            if (!datePart) return null; // Время может быть не указано
+            
+            const [day, month, year] = datePart.split('.');
+            let hours = 0, minutes = 0, seconds = 0;
+
+            if (timePart) {
+                [hours, minutes, seconds] = timePart.split(':');
+            }
+            
+            return new Date(year, month - 1, day, hours || 0, minutes || 0, seconds || 0);
+        }
+
+        function updateStats() {
+            // 1. Читаем настройки из Google JSON
+            const rawData = localStorage.getItem('hud_settings');
+            if (!rawData) return;
+
+            try {
+                const settings = JSON.parse(rawData);
+                
+                // Получаем дату рождения
+                const birthStr = settings.birthdate; 
+                // Получаем возраст смерти (число лет, например 30)
+                const deathAge = parseInt(settings.death_date); 
+
+                const birthDate = parseCustomDate(birthStr);
+                
+                // Если данных нет — выходим
+                if (!birthDate || isNaN(deathAge)) {
+                    document.getElementById('footer-target').innerText = "ОШИБКА: ПРОВЕРЬ ТАБЛИЦУ";
+                    return;
+                }
+
+                // 2. РАСЧИТЫВАЕМ ДАТУ СМЕРТИ
+                // Берем дату рождения и прибавляем к году deathAge
+                const targetDate = new Date(birthDate);
+                targetDate.setFullYear(birthDate.getFullYear() + deathAge);
+
+                const now = new Date();
+
+                // 3. ОБНОВЛЯЕМ ПОДВАЛ (Показываем расчетную дату)
+                // Форматируем дату красиво: 27.01.2031
+                const day = String(targetDate.getDate()).padStart(2, '0');
+                const month = String(targetDate.getMonth() + 1).padStart(2, '0');
+                const year = targetDate.getFullYear();
+                document.getElementById('footer-target').innerText = `ДЕДЛАЙН: ${day}.${month}.${year} (ВОЗРАСТ ${deathAge})`;
+
+                // 4. Считаем ПРОЖИТОЕ (UPTIME)
+                const livedMs = now - birthDate;
+                const livedDays = Math.floor(livedMs / (1000 * 60 * 60 * 24));
+                const livedHours = Math.floor((livedMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const livedMins = Math.floor((livedMs % (1000 * 60 * 60)) / (1000 * 60));
+
+                // 5. Считаем ОСТАЛОСЬ (T-MINUS)
+                let leftMs = targetDate - now;
+                
+                // Если дедлайн уже прошел (ты прожил дольше плана)
+                if (leftMs < 0) {
+                    leftMs = 0;
+                    document.querySelector('.stat-block.future .label').innerText = "БОНУСНЫЙ РЕЖИМ";
+                    document.querySelector('.stat-block.future').style.color = "#39ff14"; // Зеленый бонус
+                }
+
+                const leftDays = Math.floor(leftMs / (1000 * 60 * 60 * 24));
+                const leftHours = Math.floor((leftMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const leftMins = Math.floor((leftMs % (1000 * 60 * 60)) / (1000 * 60));
+                const leftSecs = Math.floor((leftMs % (1000 * 60)) / 1000);
+
+                // 6. Обновляем экран
+                
+                // Левая часть (Аптайм)
+                document.getElementById('lived-days').innerHTML = `${livedDays}<span class="unit">д</span>`;
+                document.getElementById('lived-detail').innerText = `${livedHours}ч ${livedMins}м`;
+
+                // Правая часть (Осталось)
+                document.getElementById('left-days').innerHTML = `${leftDays}<span class="unit">д</span>`;
+                
+                // Добавляем нолики
+                const h = leftHours < 10 ? '0'+leftHours : leftHours;
+                const m = leftMins < 10 ? '0'+leftMins : leftMins;
+                const s = leftSecs < 10 ? '0'+leftSecs : leftSecs;
+                
+                document.getElementById('left-detail').innerText = `${h}ч ${m}м ${s}с`;
+                
+                // Если осталось меньше года (365 дней) — КРАСНАЯ ТРЕВОГА
+                if (leftDays < 365 && leftMs > 0) {
+                     document.querySelector('.stat-block.future').style.color = '#ef4444';
+                }
+
+            } catch (e) {
+                console.error("Error calculating death date", e);
+            }
+        }
+
+        setInterval(updateStats, 1000);
+        updateStats();
+    </script>
+</body>
+</html>

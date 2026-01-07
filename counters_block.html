@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Счетчики</title>
+    <style>
+        body {
+            background-color: #11121a;
+            color: #fff;
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            font-family: 'Segoe UI', sans-serif;
+            padding: 10px;
+            box-sizing: border-box;
+            overflow: hidden;
+            gap: 8px; /* Отступ между блоками */
+        }
+
+        /* Контейнер теперь генерируется скриптом, но стили те же */
+        .counter-box {
+            background: #1a1c2e;
+            padding: 8px 12px;
+            border-radius: 12px;
+            border-left: 4px solid #555; /* Цвет по умолчанию */
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            position: relative;
+            flex: 1; /* Растягиваем блоки равномерно */
+            min-height: 0; /* Важно для flex-контейнеров и скролла */
+            transition: all 0.3s ease;
+        }
+
+        .counter-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2px;
+        }
+
+        .counter-title {
+            font-size: 11px;
+            color: #a1a1aa;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: bold;
+        }
+
+        .counter-value {
+            font-size: 20px;
+            font-weight: bold;
+            color: #fff;
+            font-family: 'Courier New', monospace;
+            margin-bottom: 4px;
+            line-height: 1;
+        }
+
+        /* --- ЦВЕТОВЫЕ ТЕМЫ --- */
+        .theme-green { border-left-color: #39ff14; }
+        .theme-green .brick { background-color: #39ff14; box-shadow: 0 0 5px rgba(57, 255, 20, 0.3); }
+        .theme-green .brick:hover { box-shadow: 0 0 8px #39ff14; }
+
+        .theme-purple { border-left-color: #d946ef; }
+        .theme-purple .brick { background-color: #d946ef; box-shadow: 0 0 5px rgba(217, 70, 239, 0.3); }
+        .theme-purple .brick:hover { box-shadow: 0 0 8px #d946ef; }
+
+        .theme-blue { border-left-color: #3b82f6; }
+        .theme-blue .brick { background-color: #3b82f6; box-shadow: 0 0 5px rgba(59, 130, 246, 0.3); }
+        .theme-blue .brick:hover { box-shadow: 0 0 8px #3b82f6; }
+
+        .theme-red { border-left-color: #ef4444; }
+        .theme-red .brick { background-color: #ef4444; box-shadow: 0 0 5px rgba(239, 68, 68, 0.3); }
+        .theme-red .brick:hover { box-shadow: 0 0 8px #ef4444; }
+
+        /* --- КИРПИЧИ --- */
+        .bricks-container {
+            display: flex;
+            flex-wrap: wrap;
+            align-content: flex-start;
+            gap: 3px;
+            overflow-y: auto;
+            flex-grow: 1;
+            padding-right: 2px;
+        }
+
+        .bricks-container::-webkit-scrollbar { width: 2px; }
+        .bricks-container::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+
+        .brick {
+            width: 12px;
+            height: 5px;
+            border-radius: 1px;
+            opacity: 0.8;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0); }
+            to { opacity: 0.8; transform: scale(1); }
+        }
+
+        .total-bricks-count {
+            font-size: 9px;
+            color: #666;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="counters-root" style="display: contents;"></div>
+
+    <script>
+        // ---------------------------------------------------------
+        // 1. КОНФИГУРАЦИЯ БЛОКОВ (ТВОЙ JSON)
+        // ---------------------------------------------------------
+        const countersConfig = [
+            { 
+                id: 'games',           // Уникальный ID
+                title: 'БЕЗ ИГР',      // Заголовок (RU)
+                key: 'nogames_from',   // Ключ в Google Sheet / JSON настроек
+                theme: 'theme-green'   // Цвет (green, purple, blue, red)
+            },
+            { 
+                id: 'nofap', 
+                title: 'БЕЗ ФАПА',     // (RU)
+                key: 'nofap_from', 
+                theme: 'theme-purple' 
+            },
+            { 
+                id: 'noporn', 
+                title: 'БЕЗ ПОРНО',    // (RU)
+                key: 'noporn_from',   // Не забудь добавить этот ключ в таблицу!
+                theme: 'theme-blue' 
+            }
+        ];
+
+        // ---------------------------------------------------------
+        // 2. ГЕНЕРАЦИЯ HTML (ИНИЦИАЛИЗАЦИЯ)
+        // ---------------------------------------------------------
+        const root = document.getElementById('counters-root');
+
+        function initCounters() {
+            root.innerHTML = '';
+            countersConfig.forEach(cfg => {
+                // Создаем HTML структуру для каждого блока
+                const box = document.createElement('div');
+                box.className = `counter-box ${cfg.theme}`;
+                box.innerHTML = `
+                    <div class="counter-header">
+                        <span class="counter-title">${cfg.title}</span>
+                        <span class="total-bricks-count" id="count-${cfg.id}">0</span>
+                    </div>
+                    <span class="counter-value" id="val-${cfg.id}">--:--:--</span>
+                    <div class="bricks-container" id="bricks-${cfg.id}"></div>
+                `;
+                root.appendChild(box);
+            });
+        }
+
+        // Запускаем создание блоков один раз при старте
+        initCounters();
+
+
+        // ---------------------------------------------------------
+        // 3. ЛОГИКА ОБНОВЛЕНИЯ (КАК РАНЬШЕ)
+        // ---------------------------------------------------------
+        function parseCustomDate(dateStr) {
+            if (!dateStr) return null;
+            const [datePart, timePart] = dateStr.split(' ');
+            if (!datePart || !timePart) return null;
+            const [day, month, year] = datePart.split('.');
+            const [hours, minutes, seconds] = timePart.split(':');
+            return new Date(year, month - 1, day, hours, minutes, seconds);
+        }
+
+        function getDiffData(startDateStr) {
+            const startDate = parseCustomDate(startDateStr);
+            if (!startDate) return { text: "ОЖИДАНИЕ...", totalHours: 0 }; // Перевод
+
+            const now = new Date();
+            let diff = now - startDate;
+            if (diff < 0) diff = 0;
+
+            const totalHours = Math.floor(diff / (1000 * 60 * 60));
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+            let text = "";
+            // Перевод сокращений: d->д, h->ч, m->м
+            if (days > 0) text = `${days}д ${hours}ч ${minutes}м`;
+            else {
+                const h = hours < 10 ? '0'+hours : hours;
+                const m = minutes < 10 ? '0'+minutes : minutes;
+                const s = seconds < 10 ? '0'+seconds : seconds;
+                text = `${h}:${m}:${s}`;
+            }
+            return { text, totalHours };
+        }
+
+        function renderBricks(containerId, countId, totalHours) {
+            const container = document.getElementById(containerId);
+            const countLabel = document.getElementById(countId);
+            if(!container || !countLabel) return;
+
+            const bricksCount = Math.floor(totalHours / 12);
+            countLabel.innerText = `${bricksCount}`; 
+
+            if (container.children.length === bricksCount) return;
+
+            container.innerHTML = ''; 
+            // Ограничитель
+            const safeCount = Math.min(bricksCount, 500); 
+
+            for (let i = 0; i < safeCount; i++) {
+                const brick = document.createElement('div');
+                brick.className = 'brick';
+                brick.title = "12ч"; // Перевод тултипа
+                container.appendChild(brick);
+            }
+        }
+
+        function updateCounters() {
+            const rawData = localStorage.getItem('hud_settings');
+            if (!rawData) return;
+
+            try {
+                const settings = JSON.parse(rawData);
+
+                countersConfig.forEach(cfg => {
+                    const dateValue = settings[cfg.key];
+                    const data = getDiffData(dateValue);
+                    
+                    const timerEl = document.getElementById(`val-${cfg.id}`);
+                    if(timerEl) timerEl.innerText = data.text;
+
+                    renderBricks(`bricks-${cfg.id}`, `count-${cfg.id}`, data.totalHours);
+                });
+
+            } catch (e) {
+                console.error("Update Error", e);
+            }
+        }
+
+        setInterval(updateCounters, 1000);
+        updateCounters();
+
+    </script>
+</body>
+</html>
