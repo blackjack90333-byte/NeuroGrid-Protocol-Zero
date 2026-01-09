@@ -1,44 +1,48 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <link rel="icon" type="image/png" href="/favicon/favicon-96x96.png" sizes="96x96" />
-<link rel="icon" type="image/svg+xml" href="/favicon/favicon.svg" />
-<link rel="shortcut icon" href="/favicon/favicon.ico" />
-<link rel="apple-touch-icon" sizes="180x180" href="/favicon/apple-touch-icon.png" />
-<meta name="apple-mobile-web-app-title" content="NeuroGrid" />
-<link rel="manifest" href="/favicon/site.webmanifest" />
     <meta charset="UTF-8">
-    <title>NeuroGrid Protocol Zero</title>
+    <title>NeuroGrid Infinite Protocol</title>
     <style>
         body {
             background-color: #050505;
             margin: 0;
-            height: 100vh;
-            overflow: hidden; /* ЗАПРЕЩАЕМ скролл глобально */
+            /* 1. РАЗРЕШАЕМ СКРОЛЛ */
+            overflow-y: auto; 
+            overflow-x: hidden; /* Горизонтальный скролл нам не нужен */
             font-family: 'Segoe UI', sans-serif;
         }
 
-        /* КОНТЕЙНЕР СЕТКИ */
+        /* КАСТОМНЫЙ СКРОЛЛБАР (Для стиля) */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #050505; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #8a2be2; }
+
         .dashboard-grid {
             display: grid;
-            /* 4 колонки по ширине */
             grid-template-columns: repeat(4, 1fr);
             
-            /* --- ГЛАВНОЕ ИЗМЕНЕНИЕ --- */
-            /* Делим высоту экрана ровно на 6 частей */
-            grid-template-rows: repeat(6, 1fr);
+            /* 2. МАГИЯ БЕСКОНЕЧНОСТИ */
+            /* Убираем жесткое ограничение в 6 рядов. 
+               Говорим: "Каждый новый ряд должен быть высотой 1/6 экрана" */
+            grid-auto-rows: calc(100vh / 6); 
             
+            /* 3. ВЫСОТА */
+            /* Минимум 1 экран, но если контента больше — растягивайся */
+            min-height: 100vh; 
+            height: auto; 
+
             gap: 5px;
             padding: 5px;
-            
-            height: 100vh;
             box-sizing: border-box;
-            
-            /* Плавное размытие для модалки */
             transition: filter 0.3s ease;
+            
+            /* 4. ПЛОТНАЯ УПАКОВКА */
+            /* Если появится дырка, а следующий блок маленький — он запрыгнет туда */
+            grid-auto-flow: row dense; 
         }
 
-        /* ВИДЖЕТ (IFRAME) */
         .widget-frame {
             width: 100%;
             height: 100%;
@@ -46,10 +50,9 @@
             border-radius: 5px;
             background-color: #11121a;
             box-shadow: 0 0 15px rgba(138, 43, 226, 0.05);
-            animation: fadeIn 0.5s ease-out;
-            /* Чтобы контент внутри фреймов тоже не скроллился, если не влезает,
-               но лучше внутри самих блоков настраивать адаптив */
-            overflow: hidden; 
+            /* Анимация появления */
+            opacity: 0; 
+            animation: fadeIn 0.5s ease-out forwards;
         }
 
         @keyframes fadeIn {
@@ -57,9 +60,8 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* --- МОДАЛКА (SETTINGS) --- */
         #settings-frame {
-            position: absolute;
+            position: fixed; /* Важно: fixed, чтобы окно всегда было по центру экрана при скролле */
             top: 50%; left: 50%;
             transform: translate(-50%, -50%);
             width: 400px; height: 300px;
@@ -74,68 +76,35 @@
 <body>
 
     <div class="dashboard-grid" id="grid-root"></div>
-
     <iframe src="settings.html" id="settings-frame"></iframe>
 
     <script>
         // ==========================================
-        // 1. АРХИТЕКТУРА: БАЛАНС СЕТКИ (Total Height = 6)
+        // КОНФИГУРАЦИЯ БЛОКОВ (ТЕПЕРЬ БЕСКОНЕЧНАЯ)
         // ==========================================
-        
-        // const widgetsConfig = [
-        //     // ЭТОТ БЛОК ПРОСТО ТЕОРЕТИЧЕСКИ ПРО ПРОКАЧКУ, РЕФЕРЕНС SOLO LEVELING
-        //     { src: "quests_block.html", colSpan: 2, rowSpan: 6 }, 
-        //     { src: "status_block.html", colSpan: 2, rowSpan: 6 },
-            
-        // ];
-
-
-        // const widgetsConfig = [
-        //     // --- ЛЕВАЯ КОЛОНКА (Сумма rowSpan = 6) ---
-        //     // Самый важный блок, занимает половину высоты левой части
-        //     // { src: "quests_block.html", colSpan: 2, rowSpan: 3 }, 
-        //     // { src: "status_block.html", colSpan: 2, rowSpan: 6 },
-        //     // Средний блок
-        //     { src: "aar_block.html", colSpan: 1, rowSpan: 4 },
-        //     { src: "memento_block.html", colSpan: 1, rowSpan: 4 },
-
-        //     { src: "birthdate_block.html", colSpan: 1, rowSpan: 2 },
-        //     { src: "biodecay_block.html", colSpan: 1, rowSpan: 2 },
-        //     { src: "counters_block.html", colSpan: 2, rowSpan: 2 }, 
-        //     // Маленький блок (пришлось уменьшить Memento до 1, чтобы влезло)
-        //     // --- ПРАВАЯ КОЛОНКА (Сумма rowSpan = 6) ---
-        //     // Трекер голодания
-        //     { src: "fasting_tracker_block.html", colSpan: 2, rowSpan: 2 },
-        //     { src: "calories_block.html", colSpan: 2, rowSpan: 2 },
-        //     // Биораспад
-        //     // День рождения (увеличил до 2, чтобы заполнить пустоту внизу)
-        // ];
         const widgetsConfig = [
-            // --- ЛЕВАЯ КОЛОНКА (Сумма rowSpan = 6) ---
-            // Самый важный блок, занимает половину высоты левой части
-            // { src: "quests_block.html", colSpan: 2, rowSpan: 3 }, 
-            // { src: "status_block.html", colSpan: 2, rowSpan: 6 },
-            // Средний блок
+            // --- ЭКРАН 1 (Занимает первые 6 рядов) ---
             { src: "fasting_tracker_block.html", colSpan: 2, rowSpan: 2 },
             { src: "memento_block.html", colSpan: 1, rowSpan: 2 },
             { src: "birthdate_block.html", colSpan: 1, rowSpan: 2 },
+            
             { src: "calories_block.html", colSpan: 1, rowSpan: 4 },
             { src: "aar_block.html", colSpan: 1, rowSpan: 4 },
             { src: "counters_block.html", colSpan: 1, rowSpan: 4 }, 
             { src: "biodecay_block.html", colSpan: 1, rowSpan: 2 },
-
             { src: "projects_block.html", colSpan: 1, rowSpan: 2 }, 
-            // Маленький блок (пришлось уменьшить Memento до 1, чтобы влезло)
-            // --- ПРАВАЯ КОЛОНКА (Сумма rowSpan = 6) ---
-            // Трекер голодания
-            // Биораспад
-            // День рождения (увеличил до 2, чтобы заполнить пустоту внизу)
+
+            // --- ЭКРАН 2 (Автоматически улетит вниз) ---
+            // Бро, просто добавляй сюда блоки, сетка сама их разместит
+            { src: "quest_block.html", colSpan: 1, rowSpan: 4 }, // Широкий блок
+            // { src: "todo_list.html", colSpan: 2, rowSpan: 4 },       // Высокий блок
+            // { src: "crypto_ticker.html", colSpan: 2, rowSpan: 2 },
+            // { src: "weather.html", colSpan: 2, rowSpan: 2 },
+            
+            // --- ЭКРАН 3 и так далее... ---
+            // { src: "youtube_lofi.html", colSpan: 4, rowSpan: 2 },
         ];
 
-
-        // ==========================================
-        // 2. ДВИЖОК
-        // ==========================================
         const gridRoot = document.getElementById('grid-root');
 
         function renderGrid() {
@@ -143,12 +112,14 @@
 
             widgetsConfig.forEach((widget, index) => {
                 const iframe = document.createElement('iframe');
-                iframe.src = widget.src;
+                // Если src нет, ставим заглушку (чтобы не ломалось при тесте)
+                iframe.src = widget.src || 'about:blank'; 
                 iframe.className = 'widget-frame';
                 
                 iframe.style.gridColumn = `span ${widget.colSpan}`;
                 iframe.style.gridRow = `span ${widget.rowSpan}`;
                 
+                // Небольшая задержка анимации для эффекта "водопада"
                 iframe.style.animationDelay = `${index * 0.05}s`;
 
                 gridRoot.appendChild(iframe);
@@ -157,10 +128,7 @@
 
         renderGrid();
 
-
-        // ==========================================
-        // 3. ЛОГИКА F8
-        // ==========================================
+        // ЛОГИКА F8 (Settings)
         const settingsFrame = document.getElementById('settings-frame');
 
         document.addEventListener('keydown', function(event) {
@@ -177,9 +145,12 @@
                 settingsFrame.style.display = 'block';
                 setTimeout(() => settingsFrame.style.opacity = '1', 10);
                 gridRoot.style.filter = 'blur(10px) brightness(0.5)';
+                // Блокируем скролл когда открыты настройки
+                document.body.style.overflow = 'hidden';
             } else {
                 settingsFrame.style.opacity = '0';
                 gridRoot.style.filter = 'none';
+                document.body.style.overflow = 'auto'; // Возвращаем скролл
                 setTimeout(() => settingsFrame.style.display = 'none', 300);
             }
         }

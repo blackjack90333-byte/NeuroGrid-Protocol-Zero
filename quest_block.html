@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Active Quest</title>
+    <style>
+        body {
+            background-color: #11121a;
+            color: #fff;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', sans-serif;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- ОБЩИЕ СТИЛИ ДЛЯ ОКОН (VIEWS) --- */
+        .view {
+            width: 100%;
+            height: 100%;
+            display: none; /* Скрыты по умолчанию */
+            flex-direction: column;
+            padding: 20px;
+            box-sizing: border-box;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .view.active {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* --- ЭКРАН 1: КНОПКА СТАРТА --- */
+        .start-btn {
+            width: 100%;
+            height: 100%;
+            background: #1a1c2e;
+            border: 2px solid #d946ef;
+            border-radius: 16px;
+            color: #d946ef;
+            font-size: 24px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            box-shadow: 0 0 20px rgba(217, 70, 239, 0.1);
+        }
+
+        .start-btn:hover {
+            background: #d946ef;
+            color: #000;
+            box-shadow: 0 0 40px rgba(217, 70, 239, 0.6);
+            transform: scale(1.02);
+        }
+
+        /* --- ЭКРАН 2: ВВОД ДАННЫХ --- */
+        
+        /* НОВЫЙ БЛОК ССЫЛОК */
+        .helper-links {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .helper-btn {
+            flex: 1;
+            background: #1a1c2e;
+            border: 1px solid #333;
+            color: #a1a1aa;
+            padding: 8px;
+            border-radius: 8px;
+            font-size: 11px;
+            text-transform: uppercase;
+            text-decoration: none;
+            text-align: center;
+            font-weight: bold;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+
+        .helper-btn:hover {
+            border-color: #d946ef;
+            color: #fff;
+            background: rgba(217, 70, 239, 0.1);
+        }
+
+        .input-title {
+            color: #a1a1aa;
+            font-size: 12px;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+
+        textarea {
+            flex-grow: 1;
+            background: #0f1016;
+            border: 1px solid #333;
+            color: #e2e8f0;
+            border-radius: 12px;
+            padding: 15px;
+            font-family: monospace;
+            font-size: 14px;
+            resize: none;
+            outline: none;
+            margin-bottom: 15px;
+        }
+
+        textarea:focus { border-color: #d946ef; }
+
+        .btn-parse {
+            background: #d946ef;
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+        }
+
+        /* --- ЭКРАН 3: СПИСОК КВЕСТА --- */
+        .quest-header {
+            font-size: 18px;
+            font-weight: bold;
+            color: #d946ef;
+            text-transform: uppercase;
+            text-align: center;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #333;
+            margin-bottom: 15px;
+            letter-spacing: 1px;
+            text-shadow: 0 0 10px rgba(217, 70, 239, 0.3);
+        }
+
+        .quest-list {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding-right: 5px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .quest-list::-webkit-scrollbar { width: 4px; }
+        .quest-list::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+
+        /* СТИЛИ ПУНКТОВ */
+        .step-row {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            border-radius: 8px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-left: 3px solid transparent;
+        }
+
+        /* 1. ПРОШЕДШИЕ (DONE) */
+        .step-row.done {
+            background: rgba(57, 255, 20, 0.05);
+            color: #666;
+            text-decoration: line-through;
+            border-left-color: #333;
+            transform: scale(0.95);
+        }
+
+        /* 2. ТЕКУЩИЙ (ACTIVE) - Яркий и большой */
+        .step-row.active {
+            background: linear-gradient(90deg, rgba(217, 70, 239, 0.1), transparent);
+            border-left-color: #d946ef;
+            color: #fff;
+            transform: scale(1.02);
+            box-shadow: 0 0 20px rgba(217, 70, 239, 0.15);
+            font-weight: bold;
+            font-size: 16px;
+            margin: 10px 0; /* Отступ чтобы выделить */
+        }
+
+        /* 3. БУДУЩИЕ (PENDING) */
+        .step-row.pending {
+            color: #444;
+            background: transparent;
+        }
+
+        .step-text {
+            flex-grow: 1;
+            margin-left: 10px;
+        }
+
+        /* ГАЛОЧКА (Кнопка действия) */
+        .check-btn {
+            width: 24px;
+            height: 24px;
+            border: 2px solid #d946ef;
+            border-radius: 6px;
+            background: transparent;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .check-btn:hover {
+            background: #d946ef;
+            box-shadow: 0 0 10px #d946ef;
+        }
+
+        .check-btn::after {
+            content: "✔";
+            color: #000;
+            font-size: 14px;
+            display: none;
+        }
+
+        /* Иконка выполненного (для старых записей) */
+        .done-icon {
+            color: #39ff14;
+            font-weight: bold;
+            font-size: 18px;
+            width: 24px;
+            text-align: center;
+        }
+
+        /* --- ФИНАЛ: КНОПКА SHARE --- */
+        .share-container {
+            margin-top: auto;
+            padding-top: 10px;
+            display: none; /* Скрыто пока не закончил */
+            animation: slideUp 0.5s ease;
+        }
+
+        @keyframes slideUp { from {transform: translateY(20px); opacity: 0;} to {transform: translateY(0); opacity: 1;} }
+
+        .btn-share {
+            width: 100%;
+            padding: 15px;
+            background: #24A1DE;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+        .btn-share:hover { background: #1b8bbf; }
+
+    </style>
+</head>
+<body>
+
+    <div class="view active" id="view-start">
+        <button class="start-btn" onclick="goToInput()">
+            ⚔ НАЧАТЬ КВЕСТ
+        </button>
+    </div>
+
+    <div class="view" id="view-input">
+        
+        <div class="helper-links">
+            <a href="https://life-quests-tau.vercel.app/" target="_blank" class="helper-btn">
+                📂 ОТКРЫТЬ КВЕСТЫ
+            </a>
+            <a href="https://github.com/blackjack90333-byte/life_quests/blob/main/quests.js" target="_blank" class="helper-btn">
+                ⚙️ РЕДАКТИРОВАТЬ
+            </a>
+        </div>
+
+        <div class="input-title">Вставьте квест (1 строка - заголовок, остальные - шаги):</div>
+        <textarea id="quest-source" placeholder="УБИЙЦА ДРАКОНОВ
+100 отжиманий
+10 км бега
+Медитация"></textarea>
+        <button class="btn-parse" onclick="startQuest()">ПРИНЯТЬ ВЫЗОВ</button>
+    </div>
+
+    <div class="view" id="view-quest">
+        <div class="quest-header" id="quest-title">TITLE</div>
+        
+        <div class="quest-list" id="quest-list-container">
+            </div>
+
+        <div class="share-container" id="share-block">
+            <button class="btn-share" id="share-btn" onclick="shareToTelegram()">
+                ОТПРАВИТЬ ОТЧЕТ В TELEGRAM ✈
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // ДАННЫЕ
+        let questTitle = "";
+        let questSteps = []; // Массив строк
+        let currentStepIndex = 0;
+
+        // ЭЛЕМЕНТЫ
+        const viewStart = document.getElementById('view-start');
+        const viewInput = document.getElementById('view-input');
+        const viewQuest = document.getElementById('view-quest');
+        
+        const sourceText = document.getElementById('quest-source');
+        const listContainer = document.getElementById('quest-list-container');
+        const titleEl = document.getElementById('quest-title');
+        const shareBlock = document.getElementById('share-block');
+
+        // --- НАВИГАЦИЯ ---
+        function goToInput() {
+            viewStart.classList.remove('active');
+            viewInput.classList.add('active');
+        }
+
+        // --- ЛОГИКА ---
+        function startQuest() {
+            const raw = sourceText.value.trim();
+            if (!raw) return;
+
+            const lines = raw.split('\n').filter(line => line.trim() !== '');
+            if (lines.length < 2) {
+                alert("Нужен заголовок и хотя бы один шаг!");
+                return;
+            }
+
+            // Парсинг
+            questTitle = lines[0];
+            questSteps = lines.slice(1);
+            currentStepIndex = 0;
+
+            // Переход
+            viewInput.classList.remove('active');
+            viewQuest.classList.add('active');
+            
+            titleEl.innerText = questTitle;
+            renderList();
+        }
+
+        // --- РЕНДЕР СПИСКА ---
+        function renderList() {
+            listContainer.innerHTML = '';
+
+            questSteps.forEach((step, index) => {
+                const row = document.createElement('div');
+                let className = 'step-row';
+                let iconHtml = '';
+
+                // Определение статуса
+                if (index < currentStepIndex) {
+                    // ВЫПОЛНЕНО
+                    className += ' done';
+                    iconHtml = '<span class="done-icon">✓</span>';
+                } else if (index === currentStepIndex) {
+                    // АКТИВНО (ТЕКУЩЕЕ)
+                    className += ' active';
+                    // Кнопка-галочка
+                    iconHtml = `<div class="check-btn" onclick="completeStep()"></div>`;
+                } else {
+                    // БУДУЩЕЕ
+                    className += ' pending';
+                    iconHtml = '<span style="width:24px;"></span>'; // Пустое место для выравнивания
+                }
+
+                row.className = className;
+                row.innerHTML = `
+                    ${iconHtml}
+                    <span class="step-text">${step}</span>
+                `;
+
+                // Авто-скролл к активному элементу
+                if (index === currentStepIndex) {
+                    setTimeout(() => row.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
+                }
+
+                listContainer.appendChild(row);
+            });
+
+            // Проверка на финиш
+            if (currentStepIndex >= questSteps.length) {
+                shareBlock.style.display = 'block';
+                // Визуальный праздник (меняем заголовок на зеленый)
+                titleEl.style.color = '#39ff14';
+                titleEl.style.textShadow = '0 0 20px #39ff14';
+                titleEl.innerText = "QUEST COMPLETED!";
+            }
+        }
+
+        function completeStep() {
+            currentStepIndex++;
+            renderList();
+        }
+
+        // --- TELEGRAM SHARE (ВЕРСИЯ 5.0: PRIVATE CHANNEL) ---
+        function shareToTelegram() {
+            // ==========================================
+            // НАСТРОЙКА: ТВОЙ КОД ПРИГЛАШЕНИЯ
+            // Ссылка: https://t.me/+TN-Dy093RWw5MDAy
+            const INVITE_HASH = 'TN-Dy093RWw5MDAy'; 
+            // ==========================================
+
+            // 1. Формируем текст
+            let report = `⚔ *QUEST COMPLETED: ${questTitle}*\n\n`;
+            questSteps.forEach((step, i) => {
+                report += `✅ ${i+1}. ${step}\n`;
+            });
+            report += `\n🏆 *STATUS: SUCCESS*`;
+
+            // 2. Копируем в буфер (ГЛАВНОЕ ДЕЙСТВИЕ)
+            navigator.clipboard.writeText(report).then(() => {
+                const btn = document.getElementById('share-btn');
+                const originalText = btn.innerText;
+                
+                btn.innerText = "СКОПИРОВАНО! ОТКРЫВАЮ ЧАТ... 🚀";
+                btn.style.background = "#10b981"; 
+
+                // 3. Открываем ЧАСТНЫЙ канал через Deep Link
+                setTimeout(() => {
+                    // Используем tg://join?invite=...
+                    window.location.href = `tg://join?invite=${INVITE_HASH}`;
+                    
+                    setTimeout(() => {
+                        btn.innerText = originalText;
+                        btn.style.background = "#24A1DE";
+                    }, 2000);
+                }, 500);
+
+            }).catch(err => {
+                alert("Ошибка копирования! Разреши доступ к буферу.");
+            });
+        }
+
+    </script>
+</body>
+</html>
